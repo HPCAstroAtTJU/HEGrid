@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------
 //
-// title                  :HEGrid.h
+// title                  :HCGrid.h
 // description            :Grid data points to map
 // author                 :
 //

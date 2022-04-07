@@ -1,12 +1,12 @@
 // --------------------------------------------------------------------
 //
-// title                  :HEGrid.cpp
+// title                  :HCGrid.cpp
 // description            :Grid data points to map
 // author                 :
 //
 // --------------------------------------------------------------------
 
-#include "HEGrid.h"
+#include "HCGrid.h"
 
 int main(int argc, char **argv){
     // Get FITS files from command
@@ -32,7 +32,7 @@ int main(int argc, char **argv){
                     &option_index)) != EOF){
         switch(pcl){
             case 'h':
-                fprintf(stderr, "useage: ./HEGrid --fits _path <absolute path> --input_file <input file> --target_file <target file> "
+                fprintf(stderr, "useage: ./HCGrid --fits _path <absolute path> --input_file <input file> --target_file <target file> "
                 "--sorted_file <sorted file> --output_file <output file>--fits_id <number> --beam_size <beam> --order_arg <order> --block_num <num>\n");
                 return 1;
             case 'p':

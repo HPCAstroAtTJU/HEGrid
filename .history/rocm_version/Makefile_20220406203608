@@ -13,7 +13,7 @@ HIPCC_LINK_FLAGS := -fgpu-rdc --hip-link
 CXX_FLAGS := -std=c++11 
 FITS_FLAGS := -lm -fopenmp -lcfitsio -lwcs -lhdf5 
 
-HEGrid: helpers.o healpix.o gmap.o gridding.o main.o
+HCGrid: helpers.o healpix.o gmap.o gridding.o main.o
 	$(HIPCC) -O3 $(HIPCC_LINK_FLAGS) -o $@ $+ $(LIBRARIES) $(FITS_FLAGS)
 
 helpers.o: helpers.cu
@@ -28,8 +28,8 @@ gmap.o: gmap.cpp
 gridding.o: gridding-omp.cu
 	$(HIPCC) -O3 -fopenmp $(HIPCC_FLAGS) $(INCLUDE) -o $@ -c $<
 
-main.o: HEGrid.cpp
+main.o: HCGrid.cpp
 	$(HIPCC) -O3 $(HIPCC_FLAGS) -o $@ -c $<
 
 clean:
-	rm -rf *.o HEGrid
+	rm -rf *.o HCGrid

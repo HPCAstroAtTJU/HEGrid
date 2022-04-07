@@ -198,9 +198,13 @@ void init_output(){
     uint32_t channels = h_GMaps.spec_dim;
     HANDLE_ERROR(cudaMallocHost((void**)& h_datacube, sizeof(double*)*channels));
     HANDLE_ERROR(cudaMallocHost((void**)& h_weightscube, sizeof(double*)*channels));
+    // h_datacube = RALLOC(double*, channels);
+    // h_weightscube = RALLOC(double* , channels);
     for(int i = 0; i < channels; i++){
+        // h_datacube[i] = RALLOC(double, num);
         HANDLE_ERROR(cudaMallocHost((void**)& h_datacube[i], sizeof(double)*num)); 
-        HANDLE_ERROR(cudaMallocHost((void**)& h_weightscube[i], sizeof(double)*num));
+        HANDLE_ERROR(cudaMallocHost((void**)& h_weightscube[i], sizeof(double)*num));         
+        // cudaMemsetHost(h_datacube[i], 0, num*sizeof(double));
         for(int j = 0; j < num; j++){
             h_datacube[i][j] = 0;
             h_weightscube[i][j] = 0;
@@ -256,7 +260,7 @@ __host__ __device__ uint32_t searchLastPosLessThan(uint64_t *values, uint32_t le
         return right;
 }
 
-__global__ void hegrid (
+__global__ void hcgrid (
     double *d_lons,
     double *d_lats,
     double *d_data,
@@ -450,6 +454,7 @@ void data_free(){
     HANDLE_ERROR( cudaFree(d_lats) );
     // DEALLOC(h_data);
     for(int i = 0; i < h_GMaps.spec_dim; i++){
+        // HANDLE_ERROR( cudaFreeHost(h_data[i]));
         cudaFreeHost(h_data[i]);
     }
     HANDLE_ERROR(cudaFreeHost(h_data));
@@ -481,11 +486,17 @@ void data_free(){
     DEALLOC(h_header);
     DEALLOC(h_zyx);
     DEALLOC(h_kernel_params);
+    // for(int i = 0; i < h_GMaps.spec_dim; i++){
+    //     printf("after release %d\n", i);
+    //     printf("%f\n", tempArray[i][0]);
+    //     DEALLOC(tempArray[i]);
+    // }
     DEALLOC(tempArray);
 }
 
 /*mpi read&pre-order input data*/
 void MallocTempArray(){
+    //read&pre-order input data
     uint32_t channels = h_GMaps.spec_dim;
     uint32_t data_shape = h_GMaps.data_shape; 
     tempArray = RALLOC(double*, channels);
@@ -556,12 +567,14 @@ double read_value = (iTime5 - iTime4);
         #pragma omp parallel
         {
             int i = omp_get_thread_num();
+            // printf("thread_num=%d\n", i);
             int channel_id = i + stream_size * j;
+            // printf("channel_id=%d\n", channel_id);
             pre_order_data(channel_id);
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, cudaMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, cudaMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_weightscube+channel_id*pitch_r), h_weightscube[channel_id], sizeof(double)*num, cudaMemcpyHostToDevice,stream[i]));
-            hegrid<<< grid, block, 0, stream[i] >>>(d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_hpx_idx);
+            hcgrid<<< grid, block, 0, stream[i] >>>(d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_hpx_idx);
             data_d2h(channel_id, channel_id);
         }
 

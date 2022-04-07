@@ -1,3 +1,5 @@
+# CC          := clang
+# CXX         := gcc
 AR          := ar -rc
 CUDA_PATH   ?=/usr/local/cuda-10.2
 NVCC        :=$(CUDA_PATH)/bin/nvcc
@@ -31,12 +33,12 @@ gridding.o: gridding-omp.cu
 #	$(NVCC) -O3 -ccbin gcc $(NVCC_FLAGS) --ptxas-options=-v $(CXX_FLAGS) $(INCLUDE) -o $@ -c $<
 	$(NVCC) -O3 -ccbin $(CXX) $(NVCC_FLAGS) $(CXX_FLAGS) $(INCLUDE) -o $@ -c $<
 
-HEGrid.o: HEGrid.cpp
+HCGrid.o: HCGrid.cpp
 	$(NVCC) -O3 -ccbin $(CXX) $(NVCC_FLAGS) $(CXX_FLAGS) $(INCLUDE) -o $@ -c $<
 
-HEGrid: helpers.o healpix.o gmap.o gridding.o HEGrid.o
+HCGrid: helpers.o healpix.o gmap.o gridding.o HCGrid.o
 	@ echo ./$@ $+
 	$(NVCC) -O3 -ccbin $(CXX) -Wno-deprecated-gpu-targets $(INCLUDE) -o $@ $+ $(CUDA_ARCH) $(LIBRARIES) $(FITS_FLAGS) $(CXX_FLAGS)
 
 clean:
-	rm -rf *.o HEGrid
+	rm -rf *.o HCGrid

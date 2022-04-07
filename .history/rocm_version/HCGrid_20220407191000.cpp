@@ -1,16 +1,17 @@
 // --------------------------------------------------------------------
 //
-// title                  :HEGrid.cpp
+// title                  :HCGrid.cpp
 // description            :Grid data points to map
 // author                 :
 //
 // --------------------------------------------------------------------
 
-#include "HEGrid.h"
+#include "HCGrid.h"
 
 int main(int argc, char **argv){
     // Get FITS files from command
-    char *path = NULL, *ifile = NULL, *tfile = NULL, *ofile = NULL, *sfile = NULL, *num = NULL, *beam = NULL, *order = NULL, *bDim = NULL, *factor = NULL;
+    char *path = NULL, *ifile = NULL, *tfile = NULL, *ofile = NULL, *sfile = NULL, *num = NULL,\
+    *beam = NULL, *order = NULL, *bDim = NULL, *Rg= NULL, *Sp = NULL, *factor = NULL;
     char pcl;
     int option_index = 0;
     static const struct option long_options[] = {
@@ -24,16 +25,18 @@ int main(int argc, char **argv){
         {"beam_size", required_argument, NULL, 'b'},            // beam size of FITS file
         {"order_arg", required_argument, NULL, 'd'},            // sort parameter
         {"block_num", required_argument, NULL, 'a'},            // the number of thread in each block
+        {"register_num", required_argument, NULL, 'r'},        // the number of register in SM
+        {"sp_num", required_argument, NULL, 'm'},              // the number of SP in each SM
         {"coarsening_factor", required_argument, NULL, 'f'},    // the value of coarsening factor
         {0, 0, 0, 0}
     };
 
-    while((pcl = getopt_long_only (argc, argv, "hp:i:t:o:s:n:b:d:a:", long_options, \
+    while((pcl = getopt_long_only (argc, argv, "hp:i:t:o:s:n:b:d:a:r:m:f:", long_options, \
                     &option_index)) != EOF){
         switch(pcl){
             case 'h':
-                fprintf(stderr, "useage: ./HEGrid --fits _path <absolute path> --input_file <input file> --target_file <target file> "
-                "--sorted_file <sorted file> --output_file <output file>--fits_id <number> --beam_size <beam> --order_arg <order> --block_num <num>\n");
+                fprintf(stderr, "useage: ./HCGrid --fits_path <absolute path> --input_file <input file> --target_file <target file> "
+                "--sorted_file <sorted file> --output_file <output file> --file_id <number> --beam_size <beam> --order_arg <order> --block_num <num>  --coarsening_factor<factor> \n");
                 return 1;
             case 'p':
                 path = optarg;
@@ -61,6 +64,12 @@ int main(int argc, char **argv){
                 break;
             case 'a':
                 bDim = optarg;
+                break;
+            case 'r':
+                Rg = optarg;
+                break;
+            case 'm':
+                Sp = optarg;
                 break;
             case 'f':
                 factor = optarg;
@@ -102,42 +111,65 @@ int main(int argc, char **argv){
 
     // Set kernel
     uint32_t kernel_type = GAUSS1D;
-    double kernelsize_fwhm = 300. / 3600.;
+    double kernelsize_fwhm = 180. / 3600.;
     if (beam) {
-        double kernelsize_fwhm = atoi(beam) / 3600.;
+        kernelsize_fwhm = atoi(beam) / 3600.;
     }
     double kernelsize_sigma = kernelsize_fwhm / sqrt(8*log(2));
     double *kernel_params;
     kernel_params = RALLOC(double, 3);
     kernel_params[0] = kernelsize_sigma;
-    double sphere_radius = 5. * kernelsize_sigma;
+    double sphere_radius = 5 * kernelsize_sigma;
     double hpx_max_resolution = kernelsize_sigma / 2.;
     _prepare_grid_kernel(kernel_type, kernel_params, sphere_radius, hpx_max_resolution);
+
+    // Get Register num and SP num
+    int Register, SP, T_max, T_max_h, BlockDim_x;
 
     // Gridding process
     h_GMaps.factor = 1;
     if (factor) {
         h_GMaps.factor = atoi(factor);
     }
-    // printf("h_GMaps.factor=%d, \n", h_GMaps.factor);
+    // printf("h_GMaps.factor=%d, ", h_GMaps.factor);
     if (sfile) {
-        if (bDim)
-            solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), atoi(bDim), argc, argv);
-        else
-            solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), 96, argc, argv);
+        if (bDim){
+            solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), atoi(bDim), argc, argv );
+        }else if ( Rg && Sp){
+                Register = atoi(Rg) * 1024;
+                SP = atoi(Sp);
+                T_max = Register / 184;
+                T_max_h = T_max / 2;
+                if ((SP >= 32) && (SP < T_max_h))
+                    BlockDim_x = SP;
+                else
+                    BlockDim_x = T_max - T_max % 32;
+            // printf("blockDim_x=%d\n", BlockDim_x);
+            solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), BlockDim_x, argc, argv);
+        } else
+            solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), 64, argc, argv);
     } else {
-        
-        if (bDim)
+        if (bDim){
             solve_gridding(infile, tarfile, outfile, NULL, atoi(order), atoi(bDim), argc, argv);
+        } else if ( Rg && Sp){
+                Register = atoi(Rg) * 1024;
+                SP = atoi(Sp);
+                T_max = Register / 184;
+                T_max_h = T_max / 2;
+                if ((SP >= 32) && (SP < T_max_h))
+                    BlockDim_x = SP;
+                else
+                    BlockDim_x = T_max - T_max % 32;
+            solve_gridding(infile, tarfile, outfile, NULL, atoi(order), BlockDim_x, argc, argv);
+        }
         else
-            solve_gridding(infile, tarfile, outfile, NULL, atoi(order), 96, argc, argv);
+            solve_gridding(infile, tarfile, outfile, NULL, atoi(order), 64, argc, argv);
     }
 
     double hostTime2 = cpuSecond();
     float elaspTime = (hostTime2 - hostTime1) * 1000;
     // printf("Running Time = %f\n", elaspTime);
-    printf("%f\n", elaspTime);
-    // printf("**************************************************\n");    
-
+    // printf("%f\n", elaspTime);
+    // printf("**************************************************\n");  
     return 0;
 }

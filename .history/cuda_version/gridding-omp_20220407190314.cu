@@ -256,7 +256,7 @@ __host__ __device__ uint32_t searchLastPosLessThan(uint64_t *values, uint32_t le
         return right;
 }
 
-__global__ void hegrid (
+__global__ void hcgrid (
     double *d_lons,
     double *d_lats,
     double *d_data,
@@ -486,6 +486,7 @@ void data_free(){
 
 /*mpi read&pre-order input data*/
 void MallocTempArray(){
+    //read&pre-order input data
     uint32_t channels = h_GMaps.spec_dim;
     uint32_t data_shape = h_GMaps.data_shape; 
     tempArray = RALLOC(double*, channels);
@@ -556,12 +557,14 @@ double read_value = (iTime5 - iTime4);
         #pragma omp parallel
         {
             int i = omp_get_thread_num();
+            // printf("thread_num=%d\n", i);
             int channel_id = i + stream_size * j;
+            // printf("channel_id=%d\n", channel_id);
             pre_order_data(channel_id);
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, cudaMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, cudaMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_weightscube+channel_id*pitch_r), h_weightscube[channel_id], sizeof(double)*num, cudaMemcpyHostToDevice,stream[i]));
-            hegrid<<< grid, block, 0, stream[i] >>>(d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_hpx_idx);
+            hcgrid<<< grid, block, 0, stream[i] >>>(d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_hpx_idx);
             data_d2h(channel_id, channel_id);
         }
 

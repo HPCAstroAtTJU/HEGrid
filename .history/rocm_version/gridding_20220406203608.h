@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // --------------------------------------------------------------------
 //
 // title                  :gridding.h
@@ -45,7 +46,7 @@ __device__ double kernel_func_ptr(double distance, double bearing);
 __host__ __device__ uint32_t searchLastPosLessThan(uint64_t *values, uint32_t left, uint32_t right, uint64_t _key);
 
 /* Gridding on GPU. */
-__global__ void hegrid (
+__global__ void hcgrid (
         double *d_lons,
         double *d_lats,
         double *d_data,

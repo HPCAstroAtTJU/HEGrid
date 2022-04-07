@@ -212,12 +212,12 @@ __host__ __device__ uint32_t searchLastPosLessThan(uint64_t *values, uint32_t le
 }
 
 
-/********************************************HEGrid****************************************/
+/********************************************HCGrid****************************************/
 /**
  * @brief   Execute gridding in GPU.
  * @param   d_lons: longitude
  * */
-__global__ void hegrid (
+__global__ void hcgrid (
         double *d_lons,
         double *d_lats,
         double *d_data,
@@ -539,9 +539,9 @@ double read_value = (iTime5 - iTime4);
     //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+i*pitch_d), h_data[i], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[j]));
     //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+i*pitch_r), h_datacube[i], sizeof(double)*num, hipMemcpyHostToDevice, stream[j]));
     //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+i*pitch_r), h_weightscube[i], sizeof(double)*num, hipMemcpyHostToDevice,stream[j]));
-    //     hipLaunchKernelGGL(hegrid, dim3(grid), dim3(block ), 0, stream[j], d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_start_ring, d_hpx_idx);
+    //     hipLaunchKernelGGL(hcgrid, dim3(grid), dim3(block ), 0, stream[j], d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_start_ring, d_hpx_idx);
     //     // data_d2h(i % stream_size, i);
-    //     // hegrid<<< grid, block, 0, stream[j] >>>(d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_hpx_idx);
+    //     // hcgrid<<< grid, block, 0, stream[j] >>>(d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_hpx_idx);
     // }
     // for(int i = 0; i < channels; i++){
     //     data_d2h(i % stream_size, i);
@@ -561,7 +561,7 @@ double read_value = (iTime5 - iTime4);
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+channel_id*pitch_r), h_weightscube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice,stream[i]));
-            hipLaunchKernelGGL(hegrid, dim3(grid), dim3(block ), 0, stream[i], d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_start_ring, d_hpx_idx);
+            hipLaunchKernelGGL(hcgrid, dim3(grid), dim3(block ), 0, stream[i], d_lons, d_lats, (double*)((char*)d_data+channel_id*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+channel_id*pitch_r), (double*)((char*)d_weightscube+channel_id*pitch_r), d_start_ring, d_hpx_idx);
         }
 
     }

@@ -8,7 +8,7 @@
 //                          set wcs for output pixels.
 //                          write output map.
 //                          write reordered map.
-// author                 : Hao Wang
+// author                 :Qi Luo
 //
 //----------------------------------------------------------------
 
@@ -17,6 +17,7 @@
 #include <wcslib.h>
 #include "gmap.h"
 #include <string>
+//#include "H5Cpp.h"
 
 double *h_lons;
 double *h_lats;
@@ -77,7 +78,7 @@ void _prepare_grid_kernel(uint32_t kernel_type, double *kernel_params, double sp
     h_GMaps.disc_size = (D2R * sphere_radius + h_Healpix._resolution);
 }
 
-/* Read input coordinate. */
+// read input coordinate
 void read_input_coordinate(const char *infile){
     hid_t file_id;// hid_t是HDF5对象id通用数据类型，每个id标志一个HDF5对象
     herr_t status; // herr_t是HDF5报错和状态的通用数据类型
@@ -102,8 +103,8 @@ void read_input_coordinate(const char *infile){
     freq_attr = H5Aopen_name(freq, "channel_num");
     status = H5Aread(freq_attr, H5T_NATIVE_INT, &channel_num);
     h_GMaps.spec_dim = channel_num;
+    printf("data_szie=%d, channel_num=%d\n",h_GMaps.data_shape,channel_num);
 
-    printf("data_size=%d,channel_num=%d, ", data_size, channel_num);
     //分配内存空间
     h_lons = RALLOC(double, data_size); //longitude赤经ra
     h_lats = RALLOC(double, data_size); //latitude赤纬dec
@@ -157,6 +158,7 @@ void read_input_data(const char *infile){
     status = H5Fclose(file_id);
 }
 
+
 /* 3. Read output map. fitsfile*/
 void read_output_map(const char *infile){
     long naxes, *naxis;
@@ -181,7 +183,7 @@ void read_output_map(const char *infile){
     h_zyx = RALLOC(uint32_t, naxes);
     for(int i=0; i<naxes; ++i)
         h_zyx[i] = (uint32_t) naxis[naxes-i-1];
-    h_GMaps.block_warp_num = (h_zyx[1] - 1) / (64 * h_GMaps.factor) + 1;  // 32-->64
+    h_GMaps.block_warp_num = (h_zyx[1] - 1) / (32 * h_GMaps.factor) + 1;
 
     // Release
     DEALLOC(naxis);
@@ -317,14 +319,14 @@ void write_output_map(const char *infile){
     for(k=0; k < naxes[0]; ++k){
         for(j=0; j < naxes[1]; ++j){
             // cout << h_datacube[i] << endl;// testing...
-            h_datacube[0][i] /= h_weightscube[0][i];
+            h_datacube[88][i] /= h_weightscube[88][i];
             ++i;
         }
     }
 
     // Write image data to the output FITS file
     first = 1;
-    fits_write_img(fptr, TDOUBLE, first, ncoords, h_datacube[0], &status);
+    fits_write_img(fptr, TDOUBLE, first, ncoords, h_datacube[88], &status);
     printfitserror(status);
 
     // Release

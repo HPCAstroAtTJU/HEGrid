@@ -8,7 +8,7 @@
 //                          set wcs for output pixels.
 //                          write output map.
 //                          write reordered map.
-// author                 : Hao Wang
+// author                 :Qi Luo
 //
 //----------------------------------------------------------------
 
@@ -17,6 +17,7 @@
 #include <wcslib.h>
 #include "gmap.h"
 #include <string>
+//#include "H5Cpp.h"
 
 double *h_lons;
 double *h_lats;

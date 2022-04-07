@@ -486,6 +486,7 @@ void data_free(){
 
 /*mpi read&pre-order input data*/
 void MallocTempArray(){
+    //read&pre-order input data
     uint32_t channels = h_GMaps.spec_dim;
     uint32_t data_shape = h_GMaps.data_shape; 
     tempArray = RALLOC(double*, channels);
@@ -556,7 +557,9 @@ double read_value = (iTime5 - iTime4);
         #pragma omp parallel
         {
             int i = omp_get_thread_num();
+            // printf("thread_num=%d\n", i);
             int channel_id = i + stream_size * j;
+            // printf("channel_id=%d\n", channel_id);
             pre_order_data(channel_id);
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, cudaMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(cudaMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, cudaMemcpyHostToDevice, stream[i]));

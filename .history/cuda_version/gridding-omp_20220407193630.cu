@@ -486,6 +486,7 @@ void data_free(){
 
 /*mpi read&pre-order input data*/
 void MallocTempArray(){
+    //read&pre-order input data
     uint32_t channels = h_GMaps.spec_dim;
     uint32_t data_shape = h_GMaps.data_shape; 
     tempArray = RALLOC(double*, channels);
