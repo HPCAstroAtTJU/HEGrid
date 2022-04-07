@@ -79,17 +79,22 @@ void _prepare_grid_kernel(uint32_t kernel_type, double *kernel_params, double sp
 
 /* Read input coordinate. */
 void read_input_coordinate(const char *infile){
-    hid_t file_id;
-    herr_t status;
+    hid_t file_id;// hid_t是HDF5对象id通用数据类型，每个id标志一个HDF5对象
+    herr_t status; // herr_t是HDF5报错和状态的通用数据类型
     hid_t coords, freq;
     // Number of input points.
     uint32_t data_size, channel_num;
-
+    // 打开HDF5文件
+    // 文件id = H5Fopen(const char *文件�?
+    //                  unsigned 读写flags,
+    //                  - H5F_ACC_RDWR可读可写    
+    //                  - H5F_ACC_RDONLY只读 
+    //                  hid_t 访问性质)
     file_id = H5Fopen(infile, H5F_ACC_RDWR, H5P_DEFAULT); 
     coords = H5Gopen(file_id, "coords", H5P_DEFAULT);
     freq = H5Gopen(file_id, "freq", H5P_DEFAULT);
 
-    // get attribute
+    // 读取属性 (num_samples)
     hid_t coords_attr, freq_attr;
     coords_attr = H5Aopen_name(coords, "data_size");
     status = H5Aread(coords_attr, H5T_NATIVE_INT, &data_size);
@@ -98,30 +103,38 @@ void read_input_coordinate(const char *infile){
     status = H5Aread(freq_attr, H5T_NATIVE_INT, &channel_num);
     h_GMaps.spec_dim = channel_num;
 
-    // printf("data_size=%d,channel_num=%d, ", data_size, channel_num);
-    // memory malloc
-    h_lons = RALLOC(double, data_size); // ra
-    h_lats = RALLOC(double, data_size); // dec
-    h_weights = RALLOC(double, data_size); // weights
+    printf("data_size=%d,channel_num=%d, ", data_size, channel_num);
+    //分配内存空间
+    h_lons = RALLOC(double, data_size); //longitude赤经ra
+    h_lats = RALLOC(double, data_size); //latitude赤纬dec
+    h_weights = RALLOC(double, data_size); //采样权重
     // Read the coordinate
+    // 创建数据集中的数据本�?   // dataset_id = H5Dopen(group位置id,
+    //                 const char *name, 数据集名
+    //                    数据集访问性质)
     hid_t dataset_id;
     // Read the coordinates
+    //赤经
     dataset_id = H5Dopen(coords, "ra", H5P_DEFAULT); 
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, h_lons);
+    //赤纬
     dataset_id = H5Dopen(coords, "dec", H5P_DEFAULT); 
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, h_lats);
 
     // Intial the weight
     for(int i=0; i<data_size; ++i)
         h_weights[i] = 1.;
+    // 关闭dataset相关对象
     status = H5Dclose(dataset_id);
+    // 关闭文件对象
     status = H5Fclose(file_id);
 }
 
 void read_input_data(const char *infile){
-    hid_t file_id;
-    herr_t status; 
+    hid_t file_id;      // hid_t是HDF5对象id通用数据类型，每个id标志一个HDF5对象
+    herr_t status;      // herr_t是HDF5报错和状态的通用数据类型
     hid_t value;
+    // 打开HDF5文件
     file_id = H5Fopen(infile, H5F_ACC_RDWR, H5P_DEFAULT); 
     value = H5Gopen(file_id, "value", H5P_DEFAULT);
     hid_t dataset_id;
@@ -130,13 +143,16 @@ void read_input_data(const char *infile){
     for(int i=0; i<h_GMaps.spec_dim;i++){
         sprintf(buff,"%d",i);
         string tmp = string(buff);
+        // printf("buffer is %s\n",buff);
         sig+=tmp;
         //strcpy(buff,sig.c_str());
         dataset_id = H5Dopen(value, sig.c_str(), H5P_DEFAULT); 
         sig = "flux_";
         status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, h_data[i]);
     }
-
+    // for (int i = 0; i < data_size; i++){
+    //     printf("channel 0 data %d %lf read by thread %d\n",i, h_data[0][i], my_rank);
+    // }
     status = H5Dclose(dataset_id);
     status = H5Fclose(file_id);
 }

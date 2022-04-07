@@ -270,7 +270,7 @@ __global__ void hegrid (
         // Go from the Northeast ring to the Southeast one
         uint32_t start_int = d_start_ring[uring - d_const_Healpix.firstring];  // get the first HEALPix index
         // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring);
-        while (uring <= dring) {                                                          
+        while (uring <= dring) {                                                            // of one ring.
             // get ring info
             uint32_t end_int = d_start_ring[uring - d_const_Healpix.firstring+1];
                     // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring+1);
@@ -489,6 +489,7 @@ void solve_gridding(const char *infile, const char *tarfile, const char *outfile
     // get the cuda device count
     int count;
     hipGetDeviceCount(&count);
+    // printf("设备数量为:%d ,",count);
     hipSetDevice(1);
     // Alloc data for GPU.
     data_alloc();

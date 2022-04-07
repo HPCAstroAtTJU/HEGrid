@@ -489,6 +489,7 @@ void solve_gridding(const char *infile, const char *tarfile, const char *outfile
     // get the cuda device count
     int count;
     hipGetDeviceCount(&count);
+    // printf("设备数量为:%d ,",count);
     hipSetDevice(1);
     // Alloc data for GPU.
     data_alloc();

@@ -98,8 +98,8 @@ void read_input_coordinate(const char *infile){
     status = H5Aread(freq_attr, H5T_NATIVE_INT, &channel_num);
     h_GMaps.spec_dim = channel_num;
 
-    // printf("data_size=%d,channel_num=%d, ", data_size, channel_num);
-    // memory malloc
+    printf("data_size=%d,channel_num=%d, ", data_size, channel_num);
+    //分配内存空间
     h_lons = RALLOC(double, data_size); // ra
     h_lats = RALLOC(double, data_size); // dec
     h_weights = RALLOC(double, data_size); // weights

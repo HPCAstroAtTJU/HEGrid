@@ -55,7 +55,7 @@ void init_input_with_cpu(const int &sort_param) {
         double theta = HALFPI - DEG2RAD * h_lats[i];
         double phi = DEG2RAD * h_lons[i];
         uint64_t hpx = h_ang2pix(theta, phi);
-        V[i] = HPX_IDX(hpx, i);             
+        V[i] = HPX_IDX(hpx, i);             // (HEALPix_index, input_index)
     }
 
     // Sort input points by param (key-value sort). KEY: HEALPix index VALUE: array index
@@ -270,7 +270,7 @@ __global__ void hegrid (
         // Go from the Northeast ring to the Southeast one
         uint32_t start_int = d_start_ring[uring - d_const_Healpix.firstring];  // get the first HEALPix index
         // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring);
-        while (uring <= dring) {                                                          
+        while (uring <= dring) {                                                            // of one ring.
             // get ring info
             uint32_t end_int = d_start_ring[uring - d_const_Healpix.firstring+1];
                     // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring+1);
@@ -489,6 +489,7 @@ void solve_gridding(const char *infile, const char *tarfile, const char *outfile
     // get the cuda device count
     int count;
     hipGetDeviceCount(&count);
+    // printf("设备数量为:%d ,",count);
     hipSetDevice(1);
     // Alloc data for GPU.
     data_alloc();
@@ -530,13 +531,31 @@ double read_value = (iTime5 - iTime4);
     HANDLE_ERROR(hipEventCreate(&stop));
     HANDLE_ERROR(hipEventRecord(start, 0));
 
+    // for(int i = 0; i < channels; i++){
+    //     int j = i % stream_size;
+    //     printf("channel_id=%d\n", i);
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+i*pitch_d), h_data[i], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[j]));
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+i*pitch_r), h_datacube[i], sizeof(double)*num, hipMemcpyHostToDevice, stream[j]));
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+i*pitch_r), h_weightscube[i], sizeof(double)*num, hipMemcpyHostToDevice,stream[j]));
+    //     hipLaunchKernelGGL(hegrid, dim3(grid), dim3(block ), 0, stream[j], d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_start_ring, d_hpx_idx);
+    //     // data_d2h(i % stream_size, i);
+    //     // hegrid<<< grid, block, 0, stream[j] >>>(d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_hpx_idx);
+    // }
+    // for(int i = 0; i < channels; i++){
+    //     data_d2h(i % stream_size, i);
+    // }    
+
     omp_set_num_threads(stream_size);
     for(int j=0; j < channels/stream_size; j++){
         #pragma omp parallel
         {
             int i = omp_get_thread_num();
+            // printf("thread_id=%d\n", threadsss);
             int channel_id = i + stream_size * j;
+            // printf("channel_id=%d\n", channel_id);
+            // printf("CPU start!\n");
             pre_order_data(channel_id);
+            // printf("CPU finish!\n");
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+channel_id*pitch_r), h_weightscube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice,stream[i]));
@@ -569,9 +588,8 @@ double read_value = (iTime5 - iTime4);
     double cost_time = sort_time + load_time1 + kernel_time/1000;
     printf("time cost %lf\n", cost_time);
 /*********************************************************************/
-
-    // Write output FITS file
-    write_output_map(outfile);
+    // // Write output FITS file
+    // write_output_map(outfile);
 
     // Write sorted input FITS file
     if (sortfile) {

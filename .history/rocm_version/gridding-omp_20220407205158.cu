@@ -55,7 +55,7 @@ void init_input_with_cpu(const int &sort_param) {
         double theta = HALFPI - DEG2RAD * h_lats[i];
         double phi = DEG2RAD * h_lons[i];
         uint64_t hpx = h_ang2pix(theta, phi);
-        V[i] = HPX_IDX(hpx, i);             
+        V[i] = HPX_IDX(hpx, i);             // (HEALPix_index, input_index)
     }
 
     // Sort input points by param (key-value sort). KEY: HEALPix index VALUE: array index
@@ -270,7 +270,7 @@ __global__ void hegrid (
         // Go from the Northeast ring to the Southeast one
         uint32_t start_int = d_start_ring[uring - d_const_Healpix.firstring];  // get the first HEALPix index
         // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring);
-        while (uring <= dring) {                                                          
+        while (uring <= dring) {                                                            // of one ring.
             // get ring info
             uint32_t end_int = d_start_ring[uring - d_const_Healpix.firstring+1];
                     // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring+1);
@@ -489,6 +489,7 @@ void solve_gridding(const char *infile, const char *tarfile, const char *outfile
     // get the cuda device count
     int count;
     hipGetDeviceCount(&count);
+    // printf("设备数量为:%d ,",count);
     hipSetDevice(1);
     // Alloc data for GPU.
     data_alloc();
@@ -569,9 +570,8 @@ double read_value = (iTime5 - iTime4);
     double cost_time = sort_time + load_time1 + kernel_time/1000;
     printf("time cost %lf\n", cost_time);
 /*********************************************************************/
-
-    // Write output FITS file
-    write_output_map(outfile);
+    // // Write output FITS file
+    // write_output_map(outfile);
 
     // Write sorted input FITS file
     if (sortfile) {

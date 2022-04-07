@@ -55,7 +55,7 @@ void init_input_with_cpu(const int &sort_param) {
         double theta = HALFPI - DEG2RAD * h_lats[i];
         double phi = DEG2RAD * h_lons[i];
         uint64_t hpx = h_ang2pix(theta, phi);
-        V[i] = HPX_IDX(hpx, i);             
+        V[i] = HPX_IDX(hpx, i);             // (HEALPix_index, input_index)
     }
 
     // Sort input points by param (key-value sort). KEY: HEALPix index VALUE: array index
@@ -226,20 +226,20 @@ __global__ void hegrid (
         double *d_weightscube,
         uint32_t *d_start_ring,
         uint64_t *d_hpx_idx) {
-    uint32_t warp_id = blockIdx.x * (blockDim.x / 64) + threadIdx.x / 64;   
-    uint32_t thread_id = ((warp_id % d_const_GMaps.block_warp_num) * 64 + threadIdx.x % 64) * d_const_GMaps.factor;  
+    uint32_t warp_id = blockIdx.x * (blockDim.x / 64) + threadIdx.x / 64;   // warp index of the whole 1Dim grid and 1Dim block. 32-->64
+    uint32_t thread_id = ((warp_id % d_const_GMaps.block_warp_num) * 64 + threadIdx.x % 64) * d_const_GMaps.factor;   // thread index in one ring.
     int get_num = 0;
     int target_num = 0;
     if (thread_id < d_const_zyx[1]) {
         uint32_t left = thread_id;    //Initial left
         uint32_t right = left + d_const_GMaps.factor - 1;   // Initial right
-        if (right > d_const_zyx[1]) {                      
+        if (right > d_const_zyx[1]) {                      // 这块儿感觉有问题，怎么是等于每行的最大索引时-1了？(待定）
             right = d_const_zyx[1];
         }
         uint32_t step = (warp_id / d_const_GMaps.block_warp_num) * d_const_zyx[1];    // Thread step for change the ring
         left = left + step;
         right = right + step;
-        double temp_weights[3], temp_data[3], l1[3], b1[3];  
+        double temp_weights[3], temp_data[3], l1[3], b1[3];  //这里预设为最大线程粗化因子为3，所以每次连续写入factor个值
         for (thread_id = left; thread_id <= right; ++thread_id) {
             temp_weights[thread_id - left] = d_weightscube[thread_id];
             temp_data[thread_id - left] = d_datacube[thread_id];
@@ -248,21 +248,21 @@ __global__ void hegrid (
         }
 
         // get northeast ring and southeast ring
-        double disc_theta = HALFPI - b1[0];     
-        double disc_phi = l1[0];               
-        double utheta = disc_theta - d_const_GMaps.disc_size;   
+        double disc_theta = HALFPI - b1[0];     // disc中心点所在行的赤纬
+        double disc_phi = l1[0];                // disc中心点所在行的赤经
+        double utheta = disc_theta - d_const_GMaps.disc_size;   // 最上面一行中心点的赤纬
         double north_theta = utheta * RAD2DEG;
         if (utheta * RAD2DEG < 0){
             utheta = 0;
-        }  
-        uint64_t upix = d_ang2pix(utheta, disc_phi);        
-        uint64_t uring = d_pix2ring(upix);                  
+        }  // 这里修改了，影响极点位置
+        uint64_t upix = d_ang2pix(utheta, disc_phi);            //最上面一行中心点所属的HEALPix的pixel索引
+        uint64_t uring = d_pix2ring(upix);                      //最上面一行中心点所在行的HEALPix的行号
         if (uring < d_const_Healpix.firstring){
             uring = d_const_Healpix.firstring;
         }
-        utheta = disc_theta + d_const_GMaps.disc_size;  
-        upix = d_ang2pix(utheta, disc_phi);            
-        uint64_t dring = d_pix2ring(upix);              
+        utheta = disc_theta + d_const_GMaps.disc_size;  // 最下面一行中心点的赤纬
+        upix = d_ang2pix(utheta, disc_phi);             // 最下面一行中心点所属的HEALPix的pixel索引
+        uint64_t dring = d_pix2ring(upix);              // 最下面一行中心点所在行的HEALPix行号
         if (dring >= d_const_Healpix.firstring + d_const_Healpix.usedrings){
             dring = d_const_Healpix.firstring + d_const_Healpix.usedrings - 1;
         }
@@ -270,7 +270,7 @@ __global__ void hegrid (
         // Go from the Northeast ring to the Southeast one
         uint32_t start_int = d_start_ring[uring - d_const_Healpix.firstring];  // get the first HEALPix index
         // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring);
-        while (uring <= dring) {                                                          
+        while (uring <= dring) {                                                            // of one ring.
             // get ring info
             uint32_t end_int = d_start_ring[uring - d_const_Healpix.firstring+1];
                     // tex1Dfetch(tex_start_ring, uring - d_const_Healpix.firstring+1);
@@ -286,7 +286,7 @@ __global__ void hegrid (
             uphi = disc_phi - d_const_GMaps.disc_size;
             d_pix2ang(d_hpx_idx[0], hpx_zero_theta, hpx_zero_phi);
             double zero_angle = uphi * RAD2DEG;
-            uint64_t lpix = d_ang2pix(utheta, uphi); 
+            uint64_t lpix = d_ang2pix(utheta, uphi); // disc size 范围首行的起始pixel
             if (disc_theta * RAD2DEG <= NORTH_B || disc_theta * RAD2DEG >= SOUTH_B){
                 lpix = startpix;
             } else{
@@ -489,6 +489,7 @@ void solve_gridding(const char *infile, const char *tarfile, const char *outfile
     // get the cuda device count
     int count;
     hipGetDeviceCount(&count);
+    // printf("设备数量为:%d ,",count);
     hipSetDevice(1);
     // Alloc data for GPU.
     data_alloc();
@@ -530,13 +531,31 @@ double read_value = (iTime5 - iTime4);
     HANDLE_ERROR(hipEventCreate(&stop));
     HANDLE_ERROR(hipEventRecord(start, 0));
 
+    // for(int i = 0; i < channels; i++){
+    //     int j = i % stream_size;
+    //     printf("channel_id=%d\n", i);
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+i*pitch_d), h_data[i], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[j]));
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+i*pitch_r), h_datacube[i], sizeof(double)*num, hipMemcpyHostToDevice, stream[j]));
+    //     HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+i*pitch_r), h_weightscube[i], sizeof(double)*num, hipMemcpyHostToDevice,stream[j]));
+    //     hipLaunchKernelGGL(hegrid, dim3(grid), dim3(block ), 0, stream[j], d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_start_ring, d_hpx_idx);
+    //     // data_d2h(i % stream_size, i);
+    //     // hegrid<<< grid, block, 0, stream[j] >>>(d_lons, d_lats, (double*)((char*)d_data+i*pitch_d), d_weights, d_xwcs, d_ywcs, (double*)((char*)d_datacube+i*pitch_r), (double*)((char*)d_weightscube+i*pitch_r), d_hpx_idx);
+    // }
+    // for(int i = 0; i < channels; i++){
+    //     data_d2h(i % stream_size, i);
+    // }    
+
     omp_set_num_threads(stream_size);
     for(int j=0; j < channels/stream_size; j++){
         #pragma omp parallel
         {
             int i = omp_get_thread_num();
+            // printf("thread_id=%d\n", threadsss);
             int channel_id = i + stream_size * j;
+            // printf("channel_id=%d\n", channel_id);
+            // printf("CPU start!\n");
             pre_order_data(channel_id);
+            // printf("CPU finish!\n");
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_data+channel_id*pitch_d), h_data[channel_id], sizeof(double)*data_shape, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_datacube+channel_id*pitch_r), h_datacube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice, stream[i]));
             HANDLE_ERROR(hipMemcpyAsync((double*)((char*)d_weightscube+channel_id*pitch_r), h_weightscube[channel_id], sizeof(double)*num, hipMemcpyHostToDevice,stream[i]));
@@ -569,9 +588,8 @@ double read_value = (iTime5 - iTime4);
     double cost_time = sort_time + load_time1 + kernel_time/1000;
     printf("time cost %lf\n", cost_time);
 /*********************************************************************/
-
-    // Write output FITS file
-    write_output_map(outfile);
+    // // Write output FITS file
+    // write_output_map(outfile);
 
     // Write sorted input FITS file
     if (sortfile) {
