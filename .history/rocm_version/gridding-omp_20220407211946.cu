@@ -555,6 +555,8 @@ double read_value = (iTime5 - iTime4);
     HANDLE_ERROR(hipEventElapsedTime(&kernel_time, start, stop));
 /********************************************************************/
 
+    // printf("%f, ", kernel_time);
+
     hipDeviceSynchronize();
 
     //destroy stream

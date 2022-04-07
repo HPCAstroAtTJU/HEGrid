@@ -521,7 +521,8 @@ double read_value = (iTime5 - iTime4);
     uint32_t num = h_zyx[0] * h_zyx[1] * h_zyx[2];
     // Set block and thread.
     dim3 block(bDim);
-    dim3 grid((h_GMaps.block_warp_num * h_zyx[2] - 1) / (block.x / 64) + 1);
+    dim3 grid((h_GMaps.block_warp_num * h_zyx[2] - 1) / (block.x / 64) + 1);  //32-->64
+    // printf("grid.x=%d, block.x=%d, ", grid.x, block.x);
 
     // Get start time.
     hipEvent_t start, stop;
@@ -554,6 +555,8 @@ double read_value = (iTime5 - iTime4);
 /***************************kernel_time*********************************/
     HANDLE_ERROR(hipEventElapsedTime(&kernel_time, start, stop));
 /********************************************************************/
+
+    // printf("%f, ", kernel_time);
 
     hipDeviceSynchronize();
 
