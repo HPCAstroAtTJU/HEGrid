@@ -596,6 +596,7 @@ double read_value = (iTime5 - iTime4);
     }
 
     // Release data
+    // printf("before Release data\n");
     data_free();
  
     HANDLE_ERROR( cudaEventDestroy(start) );

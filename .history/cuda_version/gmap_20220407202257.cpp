@@ -8,7 +8,7 @@
 //                          set wcs for output pixels.
 //                          write output map.
 //                          write reordered map.
-// author                 : 
+// author                 : Hao Wang
 //
 //----------------------------------------------------------------
 
@@ -118,9 +118,10 @@ void read_input_coordinate(const char *infile){
 }
 
 void read_input_data(const char *infile){
-    hid_t file_id; 
-    herr_t status;
+    hid_t file_id;      // hid_t是HDF5对象id通用数据类型，每个id标志一个HDF5对象
+    herr_t status;      // herr_t是HDF5报错和状态的通用数据类型
     hid_t value;
+    // 打开HDF5文件
     file_id = H5Fopen(infile, H5F_ACC_RDWR, H5P_DEFAULT); 
     value = H5Gopen(file_id, "value", H5P_DEFAULT);
     hid_t dataset_id;

@@ -8,7 +8,7 @@
 //                          set wcs for output pixels.
 //                          write output map.
 //                          write reordered map.
-// author                 : 
+// author                 : Hao Wang
 //
 //----------------------------------------------------------------
 
@@ -121,6 +121,7 @@ void read_input_data(const char *infile){
     hid_t file_id; 
     herr_t status;
     hid_t value;
+    // 打开HDF5文件
     file_id = H5Fopen(infile, H5F_ACC_RDWR, H5P_DEFAULT); 
     value = H5Gopen(file_id, "value", H5P_DEFAULT);
     hid_t dataset_id;

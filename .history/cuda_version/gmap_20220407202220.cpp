@@ -8,7 +8,7 @@
 //                          set wcs for output pixels.
 //                          write output map.
 //                          write reordered map.
-// author                 : 
+// author                 : Hao Wang
 //
 //----------------------------------------------------------------
 
@@ -99,28 +99,33 @@ void read_input_coordinate(const char *infile){
     printf("data_szie=%d, channel_num=%d\n",h_GMaps.data_shape,channel_num);
 
     // memory malloc
-    h_lons = RALLOC(double, data_size); // ra
-    h_lats = RALLOC(double, data_size); // dec
-    h_weights = RALLOC(double, data_size); // weights
+    h_lons = RALLOC(double, data_size); //longitude赤经ra
+    h_lats = RALLOC(double, data_size); //latitude赤纬dec
+    h_weights = RALLOC(double, data_size); //采样权重
     // Read the coordinate
     hid_t dataset_id;
     // Read the coordinates
+    //赤经
     dataset_id = H5Dopen(coords, "ra", H5P_DEFAULT); 
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, h_lons);
+    //赤纬
     dataset_id = H5Dopen(coords, "dec", H5P_DEFAULT); 
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, h_lats);
 
     // Intial the weight
     for(int i=0; i<data_size; ++i)
         h_weights[i] = 1.;
+    // 关闭dataset相关对象
     status = H5Dclose(dataset_id);
+    // 关闭文件对象
     status = H5Fclose(file_id);
 }
 
 void read_input_data(const char *infile){
-    hid_t file_id; 
-    herr_t status;
+    hid_t file_id;      // hid_t是HDF5对象id通用数据类型，每个id标志一个HDF5对象
+    herr_t status;      // herr_t是HDF5报错和状态的通用数据类型
     hid_t value;
+    // 打开HDF5文件
     file_id = H5Fopen(infile, H5F_ACC_RDWR, H5P_DEFAULT); 
     value = H5Gopen(file_id, "value", H5P_DEFAULT);
     hid_t dataset_id;

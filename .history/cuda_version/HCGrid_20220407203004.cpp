@@ -9,7 +9,7 @@
 #include "HEGrid.h"
 
 int main(int argc, char **argv){
-    // Get input files from command
+    // Get FITS files from command
     char *path = NULL, *ifile = NULL, *tfile = NULL, *ofile = NULL, *sfile = NULL, *num = NULL, *beam = NULL, *order = NULL, *bDim = NULL, *factor = NULL;
     char pcl;
     int option_index = 0;
@@ -33,7 +33,7 @@ int main(int argc, char **argv){
         switch(pcl){
             case 'h':
                 fprintf(stderr, "useage: ./HEGrid --fits _path <absolute path> --input_file <input file> --target_file <target file> "
-                "--sorted_file <sorted file> --output_file <output file>--file_id <number> --beam_size <beam> --order_arg <order> --block_num <num>\n");
+                "--sorted_file <sorted file> --output_file <output file>--fits_id <number> --beam_size <beam> --order_arg <order> --block_num <num>\n");
                 return 1;
             case 'p':
                 path = optarg;
@@ -77,9 +77,11 @@ int main(int argc, char **argv){
     strcat(infile, path);
     strcat(infile, ifile);
     strcat(infile, num);
+    // strcat(infile, ".fits");
     strcat(infile, ".hdf5");
     strcat(tarfile, path);
     strcat(tarfile, tfile);
+    // strcat(tarfile, num);
     strcat(tarfile, ".fits");
     strcat(outfile, path);
     strcat(outfile, ofile);
@@ -91,6 +93,7 @@ int main(int argc, char **argv){
         strcat(sortfile, num);
         strcat(sortfile, ".fits");
     }
+    // printf("order: %s, num: %s, ", order, num);
 
     double hostTime1 = cpuSecond();
 
@@ -116,7 +119,7 @@ int main(int argc, char **argv){
     if (factor) {
         h_GMaps.factor = atoi(factor);
     }
-
+    // printf("h_GMaps.factor=%d, \n", h_GMaps.factor);
     if (sfile) {
         if (bDim)
             solve_gridding(infile, tarfile, outfile, sortfile, atoi(order), atoi(bDim), argc, argv);
