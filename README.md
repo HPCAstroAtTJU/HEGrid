@@ -41,8 +41,6 @@ cd rocm_version
 make
 ```
 
-***Note:*** 
-
 ## Usage
 
 Parameters:
