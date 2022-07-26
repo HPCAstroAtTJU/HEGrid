@@ -23,7 +23,7 @@ All of these packages can be found in "Dependencies" directory or get from follo
 ## Build
 
 ```shell
-git clone git@github.com:HWang-Summit/HEGrid.git
+git clone git@github.com:HPCAstroAtTJU/HEGrid.git
 cd HEGrid
 ```
 First, before compiling and installing HEGrid, please install the relevant dependencies. Second, update the dependencies paths of the Makefiles under "cuda_version" and "rocm_version". Then:
