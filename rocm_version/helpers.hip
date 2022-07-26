@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------
 //
-// title                  :helpers.cu
+// title                  :helpers.hip
 // description            :Helper functions for Gridding.
 // author                 :
 //
