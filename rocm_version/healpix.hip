@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------
 //
-// title                  :healpix.cu
+// title                  :healpix.hip
 // description            :Healpix helper class.
 // author                 :
 //
