@@ -16,16 +16,16 @@ FITS_FLAGS := -lm -fopenmp -lcfitsio -lwcs -lhdf5
 HEGrid: helpers.o healpix.o gmap.o gridding.o main.o
 	$(HIPCC) -O3 $(HIPCC_LINK_FLAGS) -o $@ $+ $(LIBRARIES) $(FITS_FLAGS)
 
-helpers.o: helpers.cu
+helpers.o: helpers.hip
 	$(HIPCC) -O3 $(HIPCC_FLAGS) -o $@ -c $<
 
-healpix.o: healpix.cu
+healpix.o: healpix.hip
 	$(HIPCC) -O3 $(HIPCC_FLAGS) -o $@ -c $<
 
 gmap.o: gmap.cpp
 	$(HIPCC) -O3 $(HIPCC_FLAGS) $(INCLUDE) -o $@ -c $<
 
-gridding.o: gridding-omp.cu
+gridding.o: gridding-omp.hip
 	$(HIPCC) -O3 -fopenmp $(HIPCC_FLAGS) $(INCLUDE) -o $@ -c $<
 
 main.o: HEGrid.cpp
