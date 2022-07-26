@@ -1,7 +1,7 @@
 #include "hip/hip_runtime.h"
 // --------------------------------------------------------------------//
 //                                                                     //
-// title                  :gridding.cu                                 //
+// title                  :gridding.hop                                //
 // description            :Sort and Gridding process.                  //
 // author                 :                                            //
 //                                                                     //
